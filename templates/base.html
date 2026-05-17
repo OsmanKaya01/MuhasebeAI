@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% load static %}
+    <link rel="stylesheet" href="{% static "../static/css/style.css" %}">
+    <title>{% block title %}{% endblock title %}</title>
+</head>
+<body>
+    
+    {% block content %}{% endblock content %}
+    {% block script %}{% endblock script %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}Anasayfa{% endblock title %}
+
+
+{% block content %}
+    <!-- Sağ üst: Giriş ve Kayıt butonları -->
+  <div class="ust-bar">
+    <a href="{% url "login" %}" class="btn btn-beyaz">Giriş Yap</a>
+    <a href="{% url "sign" %}" class="btn btn-turuncu">Kayıt Ol</a>
+  </div>
+ 
+  <!-- HERO -->
+  <section class="hero">
+    <div>
+      <h1>Ön Muhasebenin <span class="turuncu">Kolay Yolu</span></h1>
+      <p>Gelir ve giderlerinizi tek bir yerden yönetin. Basit, hızlı, kullanışlı.</p>
+      <a href="{% url "sign" %}" class="btn btn-turuncu">Hemen Başla</a>
+    </div>
+  </section>
+ 
+  <!-- ÖZELLİKLER -->
+  <section>
+    <div class="kapsayici">
+      <h2>Neler Sunuyoruz?</h2>
+      <p class="alt">İşletmeniz için ihtiyacınız olan her şey</p>
+      <div class="kartlar">
+        <div class="kart">
+          <h3>Gelir Takibi</h3>
+          <p>Tüm gelirlerinizi tarihiyle birlikte kayıt altına alın.</p>
+        </div>
+        <div class="kart">
+          <h3>Gider Takibi</h3>
+          <p>Giderlerinizi düzenli şekilde tutun.</p>
+        </div>
+        <div class="kart">
+          <h3>Çoklu Şirket</h3>
+          <p>Birden fazla işletmenizi ayrı ayrı yönetin.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+ 
+  <!-- İLETİŞİM -->
+  <section class="iletisim">
+    <div class="kapsayici">
+      <h2>İletişim</h2>
+      <p class="alt">Soru ve önerileriniz için bize yazın</p>
+      <form onsubmit="event.preventDefault(); alert('Mesajınız gönderildi!'); this.reset();">
+        <input type="text" placeholder="Adınız" required>
+        <input type="email" placeholder="E-posta" required>
+        <textarea placeholder="Mesajınız" required></textarea>
+        <button type="submit">Gönder</button>
+      </form>
+    </div>
+  </section>
+{% endblock content %}

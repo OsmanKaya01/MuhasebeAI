@@ -1,0 +1,411 @@
+{% extends "base.html" %} {% load static %}
+{% block title %}Dashboard{% endblock title %}
+{% block content %}
+<div class="dashboard">
+
+  <aside class="sidebar">
+    <div class="kullanici">
+      <div class="avatar" id="userAvatar">{{ avatar|upper }}</div>
+      <h3 id="userNameDisplay">{{ user.fullName|title }}</h3>
+    </div>
+
+    <h4>Şirketlerim</h4>
+    <ul class="sirket-liste" id="sirketListesi">
+      {% for company in companies %}
+        <li
+          class="{% if active_company_id == company.id %}aktif{% endif %}"
+          onclick="sirketPanelAc('{{ company.id }}', this)"
+        >
+          <span class="sirket-adi-text">{{ company.cName }}</span>
+          <span
+            class="sirket-menu-btn"
+            onclick="event.stopPropagation(); sirketMenuAc('{{ company.id }}', event)"
+          >&#8942;</span>
+        </li>
+      {% empty %}
+        <li>Şirket Yok!</li>
+      {% endfor %}
+    </ul>
+
+    <button class="btn-full orange" onclick="sirketEkleFormAc()">+ Şirket Ekle</button>
+
+    <div class="bosluk"></div>
+
+    <a href="{% url 'logout' %}" class="btn-full black">Çıkış Yap</a>
+  </aside>
+
+  <main class="icerik">
+    <h1>Ön <span class="turuncu">Muhasebe</span></h1>
+
+    {% if messages %}
+      {% for message in messages %}
+        <div style="margin-bottom: 12px; padding: 10px 12px; border-radius: 6px; background: #fff5f0; color: #333; font-size: 13px;">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <!-- PANELLER -->
+    {% for company in companies %}
+      <div
+        class="sirket-panel"
+        id="sirket-panel-{{ company.id }}"
+        {% if active_company_id != company.id %}style="display:none;"{% endif %}
+      >
+        <div class="paneller" id="paneller-{{ company.id }}">
+
+          <div class="panel">
+            <h2 class="gelir-baslik">Gelir</h2>
+            <form method="post" onsubmit="loadingGoster()" action="{% url 'addTempAccountingRecord' %}" enctype="multipart/form-data">
+              {% csrf_token %}
+              <input type="hidden" name="company_id" value="{{ company.id }}">
+              <input type="hidden" name="record_type" value="gelir">
+
+              <div class="tab-basliklar">
+                <button type="button" class="tab-btn aktif-tab" onclick="tabSec('gelir{{ company.id }}', 'manuel', this)">Manuel Giriş</button>
+                <button type="button" class="tab-btn" onclick="tabSec('gelir{{ company.id }}', 'dosya', this)">Fiş / Fatura Yükle</button>
+              </div>
+
+              <div id="gelir{{ company.id }}-manuel" class="tab-icerik">
+                <div class="manuel-grid">
+                  <div class="manuel-sol">
+                    <input type="date" name="date">
+                    <input type="number" step="0.01" name="amount" placeholder="Tutar (₺)">
+                  </div>
+                  <textarea name="description" placeholder="Açıklama"></textarea>
+                </div>
+              </div>
+
+              <div id="gelir{{ company.id }}-dosya" class="tab-icerik" style="display:none;">
+                <label class="dosya-yukle-alan" id="gelir{{ company.id }}DosyaAlan">
+                  <div class="dosya-yukle-ikon">+</div>
+                  <div class="dosya-yukle-yazi">Fiş / Fatura Ekle</div>
+                  <div class="dosya-yukle-alt">Fotoğraf veya PDF</div>
+                  <div class="dosya-yukle-onizleme" id="gelir{{ company.id }}Onizleme"></div>
+                  <input type="file" name="receipt_file" accept="image/*,.pdf" style="display:none" onchange="dosyaSecildi('gelir{{ company.id }}', this)">
+                </label>
+                <div class="dosya-adi" id="gelir{{ company.id }}DosyaAdi"></div>
+              </div>
+
+              <button type="submit" class="btn-ekle-form">+ Ekle</button>
+            </form>
+
+            <table>
+              <thead>
+                <tr><th>Tarih</th><th>Tutar</th><th>Açıklama</th><th>Fiş</th><th></th></tr>
+              </thead>
+              <tbody>
+                {% for record in company.gelir_rows %}
+                  <tr>
+                    <td>{{ record.date }}</td>
+                    <td>{% if record.amount != '-' %}{{ record.amount }} ₺{% else %}-{% endif %}</td>
+                    <td>{{ record.description }}</td>
+                    <td>{{ record.receipt_text }}</td>
+                    <td>
+                      {% if record.is_temp %}
+                        <form method="post" action="{% url 'deleteTempAccountingRecord' record.id %}">
+                          {% csrf_token %}
+                          <button type="submit">Sil</button>
+                        </form>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% empty %}
+                  <tr><td colspan="5">Gelir kaydı yok.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          <div class="panel">
+            <h2 class="gider-baslik">Gider</h2>
+            <form method="post" onsubmit="loadingGoster()" action="{% url 'addTempAccountingRecord' %}" enctype="multipart/form-data">
+              {% csrf_token %}
+              <input type="hidden" name="company_id" value="{{ company.id }}">
+              <input type="hidden" name="record_type" value="gider">
+
+              <div class="tab-basliklar">
+                <button type="button" class="tab-btn aktif-tab" onclick="tabSec('gider{{ company.id }}', 'manuel', this)">Manuel Giriş</button>
+                <button type="button" class="tab-btn" onclick="tabSec('gider{{ company.id }}', 'dosya', this)">Fiş / Fatura Yükle</button>
+              </div>
+
+              <div id="gider{{ company.id }}-manuel" class="tab-icerik">
+                <div class="manuel-grid">
+                  <div class="manuel-sol">
+                    <input type="date" name="date">
+                    <input type="number" step="0.01" name="amount" placeholder="Tutar (₺)">
+                  </div>
+                  <textarea name="description" placeholder="Açıklama"></textarea>
+                </div>
+              </div>
+
+              <div id="gider{{ company.id }}-dosya" class="tab-icerik" style="display:none;">
+                <label class="dosya-yukle-alan" id="gider{{ company.id }}DosyaAlan">
+                  <div class="dosya-yukle-ikon">+</div>
+                  <div class="dosya-yukle-yazi">Fiş / Fatura Ekle</div>
+                  <div class="dosya-yukle-alt">Fotoğraf veya PDF</div>
+                  <div class="dosya-yukle-onizleme" id="gider{{ company.id }}Onizleme"></div>
+                  <input type="file" name="receipt_file" accept="image/*,.pdf" style="display:none" onchange="dosyaSecildi('gider{{ company.id }}', this)">
+                </label>
+                <div class="dosya-adi" id="gider{{ company.id }}DosyaAdi"></div>
+              </div>
+
+              <button type="submit" class="btn-ekle-form">+ Ekle</button>
+            </form>
+
+            <table>
+              <thead>
+                <tr><th>Tarih</th><th>Tutar</th><th>Açıklama</th><th>Fiş</th><th></th></tr>
+              </thead>
+              <tbody>
+                {% for record in company.gider_rows %}
+                  <tr>
+                    <td>{{ record.date }}</td>
+                    <td>{% if record.amount != '-' %}{{ record.amount }} ₺{% else %}-{% endif %}</td>
+                    <td>{{ record.description }}</td>
+                    <td>{{ record.receipt_text }}</td>
+                    <td>
+                      {% if record.is_temp %}
+                        <form method="post" action="{% url 'deleteTempAccountingRecord' record.id %}">
+                          {% csrf_token %}
+                          <button type="submit">Sil</button>
+                        </form>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% empty %}
+                  <tr><td colspan="5">Gider kaydı yok.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+
+        <!-- KAYDET / TEMİZLE BUTONLARI -->
+        <div class="kaydet-alan" id="kaydetAlan-{{ company.id }}">
+          <form method="post" action="{% url 'savePendingAccountingRecords' %}" style="margin-right: 10px;">
+            {% csrf_token %}
+            <input type="hidden" name="company_id" value="{{ company.id }}">
+            <button class="btn-kaydet-ana" type="submit">Kaydet</button>
+          </form>
+
+          <form method="post" action="{% url 'clearCompanyTable' %}">
+            {% csrf_token %}
+            <input type="hidden" name="company_id" value="{{ company.id }}">
+            <button class="btn-kaydet-ana" type="submit">Temizle</button>
+          </form>
+        </div>
+      </div>
+    {% empty %}
+      <div class="paneller">
+        <div class="panel">
+          <h2>Şirket Yok</h2>
+          <p>Sol menüden şirket ekleyerek başlayabilirsin.</p>
+        </div>
+      </div>
+    {% endfor %}
+
+    <!-- RAPOR KAYNAKLARI -->
+    <div id="raporKaynaklari" style="display:none;">
+      {% for company in companies %}
+        <div id="gunluk-rapor-{{ company.id }}">
+          <div class="rapor-tarih">{{ company.cName }} için günlük özet</div>
+
+          <div class="rapor-ozet">
+            <div class="rapor-kart gelir-kart">
+              <span>Toplam Gelir</span>
+              <strong>{{ company.report_summary.income }} ₺</strong>
+            </div>
+            <div class="rapor-kart gider-kart">
+              <span>Toplam Gider</span>
+              <strong>{{ company.report_summary.expense }} ₺</strong>
+            </div>
+            <div class="rapor-kart {% if company.report_summary.is_profit %}kar-kart{% else %}zarar-kart{% endif %}">
+              <span>Kâr / Zarar</span>
+              <strong>{{ company.report_summary.net }} ₺</strong>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Gün</th>
+                <th>Gelir</th>
+                <th>Gider</th>
+                <th>Sonuç</th>
+                <th>İşlem</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in company.daily_report_rows %}
+                <tr>
+                  <td>{{ row.label }}</td>
+
+                  <td>{{ row.income_display }} ₺</td>
+
+                  <td>{{ row.expense_display }} ₺</td>
+
+                  <td>
+                    {% if row.is_profit %}
+                      Kâr: {{ row.net_display }} ₺
+                    {% else %}
+                      Zarar: {{ row.net_display }} ₺
+                    {% endif %}
+                  </td>
+
+                  <td>
+                    <form 
+                      method="post" 
+                      action="{% url 'delete_daily_report_row' company.id row.label %}"
+                      onsubmit="return confirm('{{ row.label }} tarihli tüm kayıtları silmek istediğine emin misin?')"
+                    >
+                      {% csrf_token %}
+                      <button type="submit" class="sil-btn">Sil</button>
+                    </form>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="4">Raporlanacak tarihli ve tutarlı kayıt yok.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div id="aylik-rapor-{{ company.id }}">
+          <div class="rapor-tarih">{{ company.cName }} için aylık özet</div>
+
+          <div class="rapor-ozet">
+            <div class="rapor-kart gelir-kart">
+              <span>Toplam Gelir</span>
+              <strong>{{ company.report_summary.income }} ₺</strong>
+            </div>
+            <div class="rapor-kart gider-kart">
+              <span>Toplam Gider</span>
+              <strong>{{ company.report_summary.expense }} ₺</strong>
+            </div>
+            <div class="rapor-kart {% if company.report_summary.is_profit %}kar-kart{% else %}zarar-kart{% endif %}">
+              <span>Kâr / Zarar</span>
+              <strong>{{ company.report_summary.net }} ₺</strong>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Ay</th>
+                <th>Gelir</th>
+                <th>Gider</th>
+                <th>Sonuç</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in company.monthly_report_rows %}
+                <tr>
+                  <td>{{ row.label }}</td>
+                  <td>{{ row.income_display }} ₺</td>
+                  <td>{{ row.expense_display }} ₺</td>
+                  <td>
+                    {% if row.is_profit %}
+                      Kâr: {{ row.net_display }} ₺
+                    {% else %}
+                      Zarar: {{ row.net_display }} ₺
+                    {% endif %}
+                  </td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="4">Raporlanacak tarihli ve tutarlı kayıt yok.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- RAPOR ALANI -->
+    <div class="rapor-alani" id="raporAlani" style="display:none;">
+      <div class="rapor-ust">
+        <h2 id="raporBaslik">Rapor</h2>
+        <button class="btn-geri" onclick="raporKapat()">← Geri Dön</button>
+      </div>
+      <div id="raporIcerik"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ŞİRKET CONTEXT MENÜ -->
+<div class="sirket-menu" id="sirketMenu">
+  <button onclick="gunlukRaporGoster()">Günlük Rapor</button>
+  <button onclick="aylikRaporGoster()">Aylık Rapor</button>
+  <button class="sil-btn" onclick="sirketiSilBaslat()">Şirketi Sil</button>
+</div>
+
+<!-- ŞİRKET EKLE MODAL -->
+<div class="modal-overlay" id="sirketEkleOverlay" onclick="sirketEkleFormKapat()"></div>
+<div class="modal sifre-modal" id="sirketEkleModal">
+  <div class="modal-header">
+    <h2>Yeni Şirket Ekle</h2>
+    <button class="modal-kapat" onclick="sirketEkleFormKapat()">✕</button>
+  </div>
+  <form method="post" action="{% url 'addCompany' %}" class="modal-icerik">
+    {% csrf_token %}
+    <div class="alan">
+      <label>Şirket ID</label>
+      <input name="companyID" type="text" id="yeniSirketId" placeholder="ID numarası giriniz" maxlength="30">
+    </div>
+    <div class="alan">
+      <label>Şirket Adı</label>
+      <input name="companyName" type="text" id="yeniSirketAdi" placeholder="Şirket adını girin" maxlength="50">
+    </div>
+    <div class="sifre-butonlar">
+      <button type="submit" class="btn-ekle-modal">Ekle</button>
+    </div>
+  </form>
+</div>
+
+<!-- ŞİFRE MODAL -->
+<div class="modal-overlay" id="sifreOverlay" onclick="sifreModalKapat()"></div>
+<div class="modal sifre-modal" id="sifreModal">
+  <div class="modal-header">
+    <h2>Şirketi Sil</h2>
+    <button class="modal-kapat" onclick="sifreModalKapat()">✕</button>
+  </div>
+  <form method="post" action="{% url 'deleteCompany' %}" class="modal-icerik">
+    {% csrf_token %}
+    <input type="hidden" name="company_id" id="silCompanyId">
+    <p class="sifre-uyari">Bu şirkete ait tüm gelir ve gider kayıtları kalıcı olarak silinecektir. Devam etmek için şifrenizi girin.</p>
+    <div class="alan">
+      <label>Şifreniz</label>
+      <input type="password" name="password" id="silSifre" placeholder="Şifrenizi girin">
+    </div>
+    <div class="sifre-butonlar">
+      <button type="button" class="btn-iptal" onclick="sifreModalKapat()">İptal</button>
+      <button type="submit" class="btn-sil-onayla">Evet, Sil</button>
+    </div>
+  </form>
+</div>
+
+<!-- FİŞ MODAL -->
+<div class="modal-overlay" id="fisOverlay" onclick="fisModalKapat()"></div>
+<div class="modal fis-modal" id="fisModal">
+  <div class="modal-header">
+    <h2>Fiş / Fatura</h2>
+    <button class="modal-kapat" onclick="fisModalKapat()">✕</button>
+  </div>
+  <div class="modal-icerik" id="fisIcerik"></div>
+</div>
+
+<div id="loadingOverlay" class="loading-overlay">
+  <div class="loading-box">
+    <div class="spinner"></div>
+    <p>Dosya işleniyor, lütfen bekleyin...</p>
+  </div>
+</div>
+{% endblock content %}
+
+{% block script %}<script src="{% static 'js/dashboard.js' %}"></script>{% endblock script %}

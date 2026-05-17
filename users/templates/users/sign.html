@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}Kayıt Ol{% endblock title %}
+
+{% block content %}
+  <div class="merkez">
+      <a href="{% url "homepage" %}" class="geri">← Anasayfa</a>
+     
+      <div class="kart-form">
+        <div class="logo">Hesap<span class="turuncu">Pro</span></div>
+        <p class="baslik">Yeni hesap oluştur</p>
+     
+        <form method="post" id="kayitForm">
+            {% csrf_token %}
+          <div class="alan">
+            <label>Ad Soyad</label>
+            <input name="fullName" type="text" id="adSoyad" required>
+          </div>
+          <div class="alan">
+            <label>E-posta</label>
+            <input name="email" type="email" id="eposta" required>
+          </div>
+          <div class="alan">
+            <label>Şifre</label>
+            <input name="password1" type="password" id="sifre" required>
+          </div>
+          <div class="alan">
+            <label>Şifre Tekrar</label>
+            <input name="password2" type="password" id="sifreTekrar" required>
+          </div>
+          <button type="submit" class="btn-form">Kayıt Ol</button>
+        </form>
+     
+        <p class="alt-link">Hesabın var mı? <a href="{% url "login" %}">Giriş Yap</a></p>
+      </div>
+  </div>
+{% endblock content %}
